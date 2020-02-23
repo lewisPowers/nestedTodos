@@ -37,11 +37,7 @@
 var ENTER_KEY = 13;
 
 var util = {
-		/**
-		 * uuid() generates and returns a compliant universally unique identifier.
-		 *
-		 * @return {String} uuidString
-		 */
+
 		uuid: function() {
 			var uuidString = '';
 
@@ -57,17 +53,6 @@ var util = {
 			return uuidString;
 		},
 
-		/**
-		 * save() stores data in the browser's local storage if both the 
-		 * namespace and data arguments are passed in. If only namespace
-		 * is passed to save(), localStorage returns the data at that 
-		 * namespace. If the namespace does not exist, and empty array is
-		 * returned.
-		 *
-		 * @param {String} namespace
-		 * @param {Array} data
-		 * @return {Array}
-		 */
 		save: function(namespace, data) {
 			if (arguments.length > 1) {
 				localStorage.setItem(namespace, JSON.stringify(data));
@@ -76,11 +61,10 @@ var util = {
 			}
 		},
 
-        deleteAll: function() {
-            App.todos = [];
-            localStorage.clear('data');
-            // view.displayTodos();
-        },
+		deleteAll: function() {
+		    App.todos = [];
+		    localStorage.clear('data');
+		},
 	}
 
 var App = {
@@ -116,7 +100,6 @@ var App = {
     // },
 
     deleteTodo: function(id, todos) {
-        debugger;
         todos = todos || App.todos;
         // todos.forEach(function(todo) {
         for (var i = 0; i < todos.length; i++) {
@@ -136,7 +119,7 @@ var App = {
 
     removeTodoById: function(id, todos) {
         todos = todos || App.todos;
-        // todos.forEach(function(todo) {
+	    
         for (var i = 0; i < todos.length; i++) {
             if (!todos[i].id || Array.isArray(todos[i])) {
                 unwrapTodo(todos[i]);
@@ -158,11 +141,6 @@ var App = {
         this.todos[position].content = content;
         view.displayTodos();
     },
-
-    // toggleCompleted: function(position) {
-    //     this.todo.completed = !this.todo.completed;
-    //     view.displayTodos();
-    // },
 
     toggleCompleted: function(id, todos) {
         todos = todos || App.todos;
@@ -199,16 +177,6 @@ var App = {
             }
         })
         
-    },
-
-    getTodoId: function(todo) {
-        var id = todo.id;
-        var array = App.todos;
-        for (var i = 0; i < array.length; i++) {
-            if (array[i].id === id) {
-                return id;
-            }
-        }
     },
 
     unwrapTodo: function(todo) {
@@ -279,93 +247,8 @@ var App = {
         closeLoop(id, todos);
     },
 
-    // if (!todos[i].id) {
-    //                 console.log('There was no id, We needed to unwrap an array.')
-    //                 todos[i] = todos[i][0];
-    //             } else if (Array.isArray(todos[i])) {
-    //                 console.log('Todo was an array. We needed to unwrap an array.')
-    //                 todos[i] = todos[i][0];
-    //             } 
-
-// get and return the array that the todo is nested in
-// RETURNS ONLY A COPY OF THE ARRAY, NOT THE ARRAY ITSELF.
-    getArray: function(todos, id) {
-        var array;
-
-        for (var i = 0; i < todos.length; i++) {
-            if (Array.isArray(todos)) {
-                todos = todos.flat(); 
-            }
-            if (id === todos[i].id) {
-                array = todos;
-                break;
-            } else if (!todos[i].nestedTodos) {
-                while (!todos[i].nestedTodos) {
-                    todos = todos[0];
-                }
-            } 
-            if (todos[i].nestedTodos.length) {
-                array = this.getArray(todos[i].nestedTodos, id);
-
-                // Without this check, the for loop cannot be escaped, even if a match exists.
-                if (array !== undefined) {
-                    break;
-                }
-            }
-        }
-
-        return array;
-    },
-
-// get and return index of todo in any gien nested array
-    getTodoIndex: function(todos, id) {
-        var index;
-
-        for (var i = 0; i < todos.length; i++) {
-            while (!todos[i].nestedTodos) {
-                if (Array.isArray(todos)) {
-                    todos = todos.flat();
-                } else {
-                    todos = todos[0];
-                }
-                
-            } 
-            if (id === todos[i].id) {
-                index = i;
-                break;
-            } else  if (todos[i].nestedTodos.length) {
-                index = this.getTodoIndex(todos[i].nestedTodos, id);
-
-                // Without this check, the for loop cannot be escaped, even if a match exists.
-                if (index !== undefined) {
-                    break;
-                }
-            }
-        }
-
-        return index;
-    },
-
 };
 
-function logIds(todos) {
-
-    todos = todos || App.todos;
-    todos.forEach(function(todo) {
-        if (!todo.id) {
-            return todo[0];
-        } else if (Array.isArray(todo)) {
-            return todo[0];
-        } else {
-            console.log(todo.id);
-        }
-        
-        if (todo.nestedTodos.length) {
-            var nestedArray = todo.nestedTodos;
-            return logIds(nestedArray);
-        }
-    })
-};
 
 function getTodoById(id, todos) {
 
@@ -522,19 +405,6 @@ var view = {
         }
         
 
-    },
-
-    toggleNesting: function(todo) {
-
-    },
-
-    // check for nested todos
-    checkForNestedTodos: function(todo) {
-        if (/*todo.nestedTodos != undefined &&*/ todo.nestedTodos.length) {
-            return true;
-        } else {
-            return false;
-        }
     },
 
     eventListeners: function(e) {
