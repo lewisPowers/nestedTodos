@@ -1,25 +1,24 @@
 <html>
+    <head>
+        <title>Nested Todos JS</title>
+        <link href="style.css" rel="stylesheet">
+       
+    </head>
     <div id="main">
+        <h1>TO DO:</h1>
+        <div id="top-bar">
+            <input class="top" id="todo-input" type="text">
+            <button class="top" id="clear-button">Clear All</button>
+            <button class="top" id="clear-completed">Clear Completed</button>
+        </div>
+        
 
-        <input id="todo-input" type="text">
-        <button id="clear-button">Clear</button>
-        <button id="clear-completed">Clear Completed</button>
-
-        <ul id="todo-list">
-            <!-- <li>This is...</li>
-           <ul>
-                <li>nested! </li> 
-                <ul>
-                    <li>It happened again!</li>
-                </ul>
-            </ul> -->
-
-        </ul>
+        <ul id="todo-list"></ul>
 
     </div>
-    
+    <script src="client.js"></script>
+   
 </html>
 
-<script src="../simpletest.js"></script>
-<script src="../app.js"></script>
-<script src="../tests.js"></script>
+<!-- <script src="../simpletest.js"></script>
+<script src="../tests.js"></script> -->
