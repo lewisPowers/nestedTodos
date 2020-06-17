@@ -1,51 +1,48 @@
-var ENTER_KEY = 13;
+let ENTER_KEY = 13;
+let ESCAPE_KEY = 27;    
 
-var util = {
-		/**
-		 * uuid() generates and returns a compliant universally unique identifier.
-		 *
-		 * @return {String} uuidString
-		 */
-		uuid: function() {
-			var uuidString = '';
+let util = {
+		
+    uuid: function() {
+        let uuidString = '';
 
-			for (var i = 0; i < 32; i++) {
-				if (i === 8 || i === 12 || i === 16 || i === 20) {
-					uuidString += '-';
-				}
-				
-				var randomInt = Math.floor(Math.random() * 16);
-				uuidString += randomInt.toString(16);
-			}
+        for (let i = 0; i < 32; i++) {
+            if (i === 8 || i === 12 || i === 16 || i === 20) {
+                uuidString += '-';
+            }
+            
+            let randomInt = Math.floor(Math.random() * 16);
+            uuidString += randomInt.toString(16);
+        }
 
-			return uuidString;
-		},
+        return uuidString;
+    },
 
-		/**
-		 * save() stores data in the browser's local storage if both the 
-		 * namespace and data arguments are passed in. If only namespace
-		 * is passed to save(), localStorage returns the data at that 
-		 * namespace. If the namespace does not exist, and empty array is
-		 * returned.
-		 *
-		 * @param {String} namespace
-		 * @param {Array} data
-		 * @return {Array}
-		 */
-		save: function(namespace, data) {
-			if (arguments.length > 1) {
-				localStorage.setItem(namespace, JSON.stringify(data));
-			} else {
-				return JSON.parse(localStorage.getItem(namespace)) || [];
-			}
-		},
+    /**
+        * save() stores data in the browser's local storage if both the 
+        * namespace and data arguments are passed in. If only namespace
+        * is passed to save(), localStorage returns the data at that 
+        * namespace. If the namespace does not exist, and empty array is
+        * returned.
+        *
+        * @param {String} namespace
+        * @param {Array} data
+        * @return {Array}
+        */
+    save: function(namespace, data) {
+        if (arguments.length > 1) {
+            localStorage.setItem(namespace, JSON.stringify(data));
+        } else {
+            return JSON.parse(localStorage.getItem(namespace)) || [];
+        }
+    },
 
-        deleteAll: function() {
-            App.todos = [];
-            localStorage.clear('data');
-            // view.displayTodos();
-        },
-	}
+    deleteAll: function() {
+        throw new TypeError('this function has been disabled')
+        // App.todos = [];
+        // localStorage.clear('data');
+    },
+};
 
 var App = {
 
@@ -63,106 +60,240 @@ var App = {
     //     view.displayTodos();
     // },
     createTodo: function(content) {
-        var todo = {
+        let todo = {
             content: content,
-            id: util.uuid(),
+            completed: false,
             nestedTodos: [],
-            completed: false
-        }
+            id: util.uuid()
+        };
         this.todos.push(todo);
         view.displayTodos();
     },
 
-    // deleteTodo: function(position, array) {
-    //     array.splice(position, 1);
-    //     util.save('data', App.todos);
-    //     view.displayTodos();
-    // },
-
     deleteTodo: function(id, todos) {
-        debugger;
         todos = todos || App.todos;
-        // todos.forEach(function(todo) {
-        for (var i = 0; i < todos.length; i++) {
+
+        for (let i = 0; i < todos.length; i++) {
             if (!todos[i].id || Array.isArray(todos[i])) {
                 unwrapTodo(todos[i]);
             } else if (todos[i].id === id) {
+                if (todos[i].nestedTodos.length) {
+                    if (!App.checkNestsForCompletion(todos[i])) {
+                        return;
+                    }
+                }
                 return todos.splice(i, 1);
             }
             
             if (todos[i].nestedTodos.length) {
-                var nestedArray = todos[i].nestedTodos;
+                let nestedArray = todos[i].nestedTodos;
                 this.deleteTodo(id, nestedArray);
             }
-            
         }
     },
 
-    removeTodoById: function(id, todos) {
+    changeTodoContent: function(id, todos, newText) {
         todos = todos || App.todos;
-        // todos.forEach(function(todo) {
-        for (var i = 0; i < todos.length; i++) {
+
+        for (let i = 0; i < todos.length; i++) {
             if (!todos[i].id || Array.isArray(todos[i])) {
                 unwrapTodo(todos[i]);
-            } else if (todos[i].id === id) {
-                var spliced = todos.splice(i, 1);
-            }
+            } 
             
-            if (todos[i].nestedTodos.length) {
-                var nestedArray = todos[i].nestedTodos;
-                return this.removeTodoById(id, nestedArray);
-            }
-            if (spliced) {
-                App.todos.splice(i, 0, spliced);
+            if (todos[i].id === id) {
+                todos[i].completed = false;
+                todos[i].content = newText;
+            } else if (todos[i].nestedTodos.length) {
+                let nestedArray = todos[i].nestedTodos;
+                this.changeTodoContent(id, nestedArray, newText);
             }
         }
-    },
-
-    changeTodoContent: function(position, content) {
-        this.todos[position].content = content;
         view.displayTodos();
     },
-
-    // toggleCompleted: function(position) {
-    //     this.todo.completed = !this.todo.completed;
-    //     view.displayTodos();
-    // },
 
     toggleCompleted: function(id, todos) {
         todos = todos || App.todos;
-        // todos.forEach(function(todo) {
-        for (var i = 0; i < todos.length; i++) {
-            if (!todos[i].id) {
-                todos[i] = todos[i][0];
-            } else if (Array.isArray(todos[i])) {
-                todos[i] = todos[i][0];
-            } else  if (todos[i].id === id) {
-                todos[i].completed = !todos[i].completed;
-                return;
-            }
-            
-            if (todos[i].nestedTodos.length) {
-                var nestedArray = todos[i].nestedTodos;
-                return this.toggleCompleted(id, nestedArray);
+        function closeLoop(id, todos) {
+            for (let i = 0; i < todos.length; i++) {
+                if (todos[i].id === id) {
+                    todos[i].completed = !todos[i].completed;
+                    if (todos[i].completed === true) {
+                        App.completeTreeTrue(todos[i].nestedTodos);
+                    } 
+                    else {
+                        App.completeTreeFalse(todos[i].nestedTodos);
+                        // App.fixCompletion(id);
+                    }
+                } else if (todos[i].nestedTodos.length) {
+                    let nestedArray = todos[i].nestedTodos;
+                    App.toggleCompleted(id, nestedArray);
+                }
             }
         }
-        
+        closeLoop(id, todos);
         view.displayTodos();
     },
+    
+    fixCompletion: function(id, todos, chain) {
+        todos = todos || App.todos;
+        chain = chain || 'App.todos';
+        let nest = 'nestedTodos';
+        function closeLoop(id,todos, chain) {
+            for (let i = 0; i < todos.length; i++) {
+                chain = chain + '[' + i + ']';
+                if (todos[i].id === id) {
+                    if (todos[i].completed) {
+                        if (!App.checkNestsForCompletion(todos[i])) {
+                        // if (!App.nestsComplete(todos[i].nestedTodos[0])) {
+                            todos[i].completed = false;
+                        }
+                    } else if (todos[i].nestedTodos.length && App.checkNestsForCompletion(todos[i].nestedTodos[0])) {
+                        chain = chain + nest;
+                        App.fixCompletion(id, todos[i].nestedTodos[0], chain)
+                    }
+                }
+            }
+        }
+        closeLoop(id,todos.chain);
+    },
 
-    completeTree: function() {
+    completeTreeFalse: function(todos) {
+        todos.map(function(todo) {
+            todo.completed = false;
+            if (todo.nestedTodos.length) {
+                App.completeTreeFalse(todo.nestedTodos);
+            }
+        });
 
+    },
+
+    completeTreeTrue: function(todos) {
+        todos.map(function(todo) {
+            todo.completed = true;
+            if (todo.nestedTodos.length) {
+                App.completeTreeTrue(todo.nestedTodos);
+            }
+        });
+    },
+
+    // check todo for completion
+
+    // if complete, check todo for nested todos
+        // else return false
+
+    // if nested todos.length, check all for completion
+        // else return true
+
+    // if one is not
+
+    nestsComplete: function(todos) {
+        return todos.every(function(item) {
+            return item.completed;
+        })
+    },
+
+    checkNestsForCompletion: function(todo) { // returns a boolean
+        let id = todo.id;
+        let isCompleted = true;
+        let todos = todo.nestedTodos;
+        let done;
+        // let nestedTodosAreComplete = App.nestsComplete(todos);
+        // if (Array.isArray(todo)) {
+
+        // }
+        if (todos.length) {
+            done = false;
+            while (!done) {
+                todos.forEach(function(todo, i) {
+                    if (todo.completed) {
+                        if (todo.nestedTodos.length) {
+                            App.checkNestsForCompletion(todo.nestedTodos) 
+                        } else {
+                            done = true;
+                            return isCompleted;
+                        }
+                    } else {
+                        done = true;
+                        return isCompleted = false;
+                    }
+                });
+            }
+        }
+        return isCompleted;
+    },
+
+    getCompletedProp: function(id, todos) {
+        if (arguments.length < 2) {
+             todos = App.todos;
+        }
+        for (let i = 0; i < todos.length; i ++) {
+            if (todos[i].id === id) {
+                return todos[i].completed;
+            } else if (todos[i].nestedTodos.length) {
+                this.getCompletedProp(id, todos[i].nestedTodos[0])
+            }
+        }
     },
 
     deleteCompleted: function(todos) {
-        todos = App.todos.filter(function(todo, index) {
-            if (todo.nestedTodos.length) {
-                return this.deleteCompleted(todo.nestedTodos);
-            } else {
-                return !todo.completed;
-            }
+
+        if (arguments.length < 1) {
+            todos = App.todos;
+        }
+        App.todos = todos.filter(function(todo) {
+
+            return !todo.completed;
+
+            // if (!todo.id && Array.isArray(todo)) {
+            //     todo = this.unwrapTodo(todo);
+            // } 
+
+            // if (todo.completed === false) {
+            //     console.log(todo + ': Not Completed');
+            //     return todo;
+            // } else if (todo.nestedTodos.length) {
+            //     let nestedArray = todo.nestedTodos;
+            //     App.deleteCompleted(nestedArray);
+            // }
         })
-        
+        view.displayTodos();
+    },
+
+    moveTodo: function(idToMove, targetId, todos) {
+        let todoToMove; 
+        let moveIdx;
+        let targetTodo;
+        let targetIdx; 
+        let done = false;
+
+        function closeLoop(idToMove, targetId, todos) {
+            todos.forEach(function(todo, index, array) {
+                if (!done) {
+                    if (todo.id === idToMove) {
+                        todoToMove = array[index];
+                        moveIdx = index;
+                    } else if (todo.id === targetId) {
+                        targetTodo = todo;
+                        targetIdx = index;
+                    }
+
+                    if (targetIdx !== undefined && todoToMove) {
+                        if (moveIdx < targetIdx) {
+                            array.splice(targetIdx + 1, 0, todoToMove);
+                            array.splice(moveIdx, 1);
+                        } 
+                        else {
+                            array.splice(moveIdx, 1);
+                            array.splice(targetIdx, 0, todoToMove);
+                        }
+                        done = true;
+                    } else if (todo.nestedTodos.length) {
+                        closeLoop(idToMove, targetId, array[index].nestedTodos)
+                    }
+                }
+            })
+        }
+        closeLoop(idToMove, targetId, todos);
     },
 
     unwrapTodo: function(todo) {
@@ -175,24 +306,24 @@ var App = {
     nestTodo: function(id, todos) {
      
         todos = todos || App.todos;
-        var mainIdx = mainIdx || 0;
-        var done = done || false;
+        let mainIdx = 0;
+        let done = false;
 
         function closeLoop(id, todos) {
 
-            for (var i = 0; i < todos.length; i++) {
+            for (let i = 0; i < todos.length; i++) {
 
                 if (!done) {
                     if (todos[i].id === id) {
-                        var target = todos[i - 1].nestedTodos;
-                        var spliced = todos.splice(i, 1);
+                        let target = todos[i - 1].nestedTodos;
+                        let spliced = todos.splice(i, 1);
                         if (Array.isArray(spliced)) {
                             spliced = spliced[0];
                         }
                         target.push(spliced);
                         return done = true;
                     } else if (todos[i].nestedTodos.length) {
-                        var nestedArray = todos[i].nestedTodos;
+                        let nestedArray = todos[i].nestedTodos;
                         closeLoop(id, nestedArray);
                     } 
                 } 
@@ -202,31 +333,60 @@ var App = {
     },
 
     unnestTodo: function(id, todos) {
-
         todos = todos || App.todos;
-        var mainIdx = mainIdx || 0;
-        var done = done || false;
-        var targetArray;
+        let mainTodos = App.todos;
+        let mainIdx = 0;
+        let done = false;
+        let targetArray;
+
         function closeLoop(id, todos) {
-            for (var i = 0; i < todos.length; i++) {
+            for (let i = 0; i < todos.length; i++) {
 
                 if (!done) {
-                
+                    if (todos === mainTodos) {
+                        mainIdx++;
+                    } 
                     if (todos[i].id === id) {
-                        var spliced = todos.splice(i, 1);
-                        if (Array.isArray(spliced)) {
-                            spliced = spliced[0];
+                        let todoToMove = todos[i];
+                        todos.splice(i, 1);
+                        if (todos === targetArray) {
+                            targetArray = App.todos;
                         }
-                        targetArray.splice(mainIdx + 1, 0, spliced);
+                        targetArray.splice(mainIdx, 0, todoToMove);
                         return done = true;
                     } else if (todos[i].nestedTodos.length) {
                         targetArray = todos;
-                        var nestedArray = todos[i].nestedTodos;
+                        let nestedArray = todos[i].nestedTodos;
                         closeLoop(id, nestedArray);
-                    } else {
-                        
+                    } 
+                } 
+            }
+        }
+        closeLoop(id, todos);
+    },
+
+    unnestTotally: function(id, todos) {
+        todos = todos || App.todos;
+        let mainTodos = App.todos;
+        let mainIdx = 0;
+        let done = false;
+
+        function closeLoop(id, todos) {
+            for (let i = 0; i < todos.length; i++) {
+
+                if (!done) {
+                    if (todos === mainTodos) {
                         mainIdx++;
-                    }
+                    } 
+                    if (todos[i].id === id) {
+                        let todoToMove = todos[i];
+                        todos.splice(i, 1);
+                        App.todos.splice(mainIdx, 0, todoToMove);
+                        return done = true;
+                    } else if (todos[i].nestedTodos.length) {
+                        let nestedArray = todos[i].nestedTodos;
+                        closeLoop(id, nestedArray);
+                    } 
                 } 
             }
         }
@@ -247,7 +407,7 @@ function logIds(todos) {
         }
         
         if (todo.nestedTodos.length) {
-            var nestedArray = todo.nestedTodos;
+            let nestedArray = todo.nestedTodos;
             return logIds(nestedArray);
         }
     })
@@ -255,7 +415,7 @@ function logIds(todos) {
 
 function getTodoById(id, todos) {
 
-    var todos = todos || App.todos;
+    todos = todos || App.todos;
     todos.forEach(function(todo) {
         if (!todo.id) {
             return todo[0];
@@ -266,7 +426,7 @@ function getTodoById(id, todos) {
         }
         
         if (todo.nestedTodos.length) {
-            var nestedArray = todo.nestedTodos;
+            let nestedArray = todo.nestedTodos;
             return getTodoById(id, nestedArray);
         }
     })
@@ -274,35 +434,32 @@ function getTodoById(id, todos) {
 
 function getTodoIdxById(id, todos) {
 
-    var todos = todos || App.todos;
-    // todos.forEach(function(todo) {
-    for (var i = 0; i < todos.length; i++) {
-        var todo = todos[i];
-        if (!todo.id) {
-            return todo[0];
-        } else if (Array.isArray(todo)) {
+    todos = todos || App.todos;
+    for (let i = 0; i < todos.length; i++) {
+        let todo = todos[i];
+        if (!todo.id || Array.isArray(todo)) {
             return todo[0];
         } else  if (todo.id === id) {
             return i;
         }
         
         if (todo.nestedTodos.length) {
-            var nestedArray = todo.nestedTodos;
+            let nestedArray = todo.nestedTodos;
             return getTodoIdxById(id, nestedArray);
         }
     }
 };
 
 
-var view = {
+let view = {
 
     displayTodos: function() {
         util.save('data', App.todos);
-        // var todos = util.save('data');
-        var todos = App.todos;
-        var todosUl = document.getElementById('todo-list');
-        var endOfTree = false;
-        var index = 0;
+        let todos = App.todos;
+        let todosUl = document.getElementById('todo-list');
+        let todoInput = document.getElementById('todo-input');
+        let endOfTree = false;
+        let index = 0;
         
         if (!todos.length) {
             todosUl.innerHTML = 'No Todos!';
@@ -313,38 +470,42 @@ var view = {
                 ul = ul || todosUl;
 
                 list.forEach(function(todo) {
-                // for (var i = 0; i < list.length; i++) {
-                    // var todo = list[i];
-
-                // create and append li to ul
-
-                    // list.flat();
-                    // if (Array.isArray(todo)) {
-                    //     todo = todo.flatMap(function(todo) {
-                    //         return todo;
-                    //     });
-                    // }
                     
                     while (!todo.content) {
-                        todo = todo[0];
+                        todo = App.unwrapTodo(todo);
                     }
-                    var li = document.createElement('li');
+                    let li = document.createElement('li');
                     li.setAttribute('data-id', todo.id);
+                    li.setAttribute('data-completed', todo.completed);
                     li.className = 'li';
-                    var todoLabel = document.createElement('label');
-                    todoLabel.className = 'todo';
+                    li.draggable = true;
+                    let todoLabel = document.createElement('label');
+                    todoLabel.className = 'todo-label';
                     todoLabel.innerHTML = todo.content;
-                    // li.textContent = todo.content;
-                    var input = document.createElement('input');
+                    let input = document.createElement('input');
                     input.className = 'toggle';
                     input.setAttribute('type', 'checkbox');
                     if (todo.completed) {
-                        input.checked = true;
+                        // debugger;
+                        // if todo has nested todos
+                        // if (todo.nestedTodos.length) {
+                            // run check on nested todos for completion
+                            // if (App.checkNestsForCompletion(todo) === false) {
+                            //     // if any are incomplete, 
+                            //     todo.completed = false; 
+                            //     input.checked = false;
+                            // }
+                        // } else {
+                            input.checked = true;
+                            todoLabel.style.cssText = "text-decoration: line-through;";
+                        // }
                     }
-                    var deleteButton = document.createElement('button');
+                    let deleteButton = document.createElement('button');
                     deleteButton.className = 'delete';
-                    li.appendChild(input);
+                    deleteButton.innerText = 'X';
+
                     li.appendChild(todoLabel);
+                    li.appendChild(input);
                     li.appendChild(deleteButton);
                     ul.appendChild(li);
                     
@@ -354,11 +515,10 @@ var view = {
                     }
                     // if nested todos, append new ul and repeat previous steps
                     while (!list.nestedTodos) {
-                        // if ()
+                        // console.log('line 446 displayTodos(): list did not have nested todos')
                         list = list[0];
                     }
 
-                    // todos = todos.nestedTodos;
                     if (list.nestedTodos.length && index in list.nestedTodos !== false) {
                         while (!list.nestedTodos) {
                             list.nestedTodos = list.nestedTodos[0];
@@ -366,101 +526,141 @@ var view = {
                         // switch list to nested array
                         list = list.nestedTodos;
                         // create and append new ul to parent ul
-                        var newUl = document.createElement('ul');
+                        let newUl = document.createElement('ul');
+                        newUl.className = 'nested';
                         ul.appendChild(newUl);
                         renderAll(list, newUl);
                     } else {
                         endOfTree = true;
                     }
-                    
                 })
-                // }
             }
             renderAll(todos, todosUl);
         }
+        // todoInput.focus();
     },
 
+    editInput: function(parent, label) {
+        let editInput = document.createElement('input');
+        editInput.className = 'edit';
+        parent.draggable = false;
+        parent.replaceChild(editInput, label);
+        editInput.value = label.innerText;
+        editInput.focus();
+    },
 
-    indexFromEl: function (el, todos) {   
-        var id = el.closest('li').dataset.id;
-        if (arguments.length < 2) {
-            var todos = App.todos;
-        }
-        
-        var i = todos.length;
-
-        while (i--) {
-            if (todos[i] === undefined) {
-                i--;
-            }
-            while (!todos[i].id) {
-                todos = todos[0];
-            }
-            if (todos[i].id === id) {
-                return i;
-            } else if (!todos[i].nestedTodos) {
-                while (!todos[i].nestedTodos) {
-                    todos = todos[0];
-                }
-            }  else if (todos[i].nestedTodos.length) {
-                view.indexFromEl(el, todos[i].nestedTodos)
-            }
-        }
+    eventListeners: function() {
+        let mainDiv = document.getElementById('main');
+        let todosUl = document.getElementById('todo-list');
+        let todoInput = document.getElementById('todo-input');
+        let clearCompleted = document.getElementById('clear-completed');
+        let label = document.querySelectorAll('.todo-label');
         
 
-    },
+        mainDiv.addEventListener('click', function(e) {
+            let clearAll = document.getElementById('clear-button');
+            // let editInput = document.querySelector('input.edit')
+            let elClicked = e.target;
 
-    toggleNesting: function(todo) {
+            // if (elClicked.className === 'edit') {
+            //     e.preventDefault();
+            //     return elClicked.focus();
+            // } else 
+            // if (elClicked === editInput) {
+            //     return;
+            // } 
+            if (elClicked === clearAll) {
+                util.deleteAll();
+            } else if (elClicked === clearCompleted) {
+                App.deleteCompleted();
+            }
+            // view.displayTodos();
+        }, false);
+    
+        document.addEventListener('keyup', function(e) {
+            let el = e.target;
+            let todo = el.closest('li');
+            
 
-    },
-
-    // check for nested todos
-    checkForNestedTodos: function(todo) {
-        if (/*todo.nestedTodos != undefined &&*/ todo.nestedTodos.length) {
-            return true;
-        } else {
-            return false;
-        }
-    },
-
-    eventListeners: function(e) {
-        var mainDiv = document.getElementById('main');
-        var todosUl = document.getElementById('todo-list');
-        var todoInput = document.getElementById('todo-input');
-        var otherUl = document.querySelectorAll('other');
-        var clearCompleted = document.getElementById('clear-completed');
+            if (e.keyCode === 191 && !e.shiftKey) { // '/' key
+                todoInput.focus();
+            } else if (e.which === ESCAPE_KEY && el.className === 'edit') {
+                view.displayTodos();
+            } else if (e.which === ENTER_KEY && el.className === 'edit') {
+                let todoId = todo.dataset.id;
+                App.changeTodoContent(todoId, App.todos, el.value);
+                view.displayTodos();
+            }
+            
+        }, false);
         
-
-
         todoInput.addEventListener('keydown', function(event) {
            
             if (event.keyCode === ENTER_KEY) {
                 if (todoInput.value === '') {
                     return;
                 } else {
-
-                    // App.addTodo(todoInput.value);
                     App.createTodo(todoInput.value);
-
                     todoInput.value = '';
                     todoInput.focus();
-                    // todoInput.textContent into li element (displayTodos)
                 }
             }
-        });
+        }, false);
+
+        let pickedUp;
+        let dropped;
+
+        todosUl.addEventListener('mousedown', function(e) {
+            pickedUp = e.screenX;
+        }, false);
 
         todosUl.addEventListener('click', function(e) {
-            var elClicked = e.target;
-            var todo = elClicked.closest('li');
-            var todoId = todo.dataset.id;
+            // debugger;
+            // let timesClicked = e.detail;
+            let elClicked = e.target;
+            let todo = elClicked.closest('li');
+            let label = elClicked.closest('label');
+            let todoId = todo.dataset.id;
 
-             if (e.target.className === 'toggle') {
-                console.log('toggle button clicked');
-                // App.toggleCompleted(todo);
+            // if (elClicked.className === 'edit') {
+            //     e.preventDefault();
+            //     return elClicked.focus();
+            // } else 
+            if (e.altKey || e.shiftKey) {
+                view.editInput(todo, label);
+
+            } else if (elClicked.className === 'toggle') {
+                // todo.setAttribute('data-completed', !data-completed);
                 App.toggleCompleted(todoId);
-            } else if (e.target.className === 'todo') {
-                var isFirst = todo.parentElement.firstElementChild;
-                var parentId = todo.parentElement.id;
+                todo.setAttribute('data-completed', App.getCompletedProp(todoId));
+                // todo = todo.parentElement.previousElementSibling;
+                // if (todo) {
+                //     App.toggleCompleted(todoId);
+                //     todo = todo.parentElement.previousElementSibling;
+                // }
+                // let parent = todo.parentElement.previousElementSibling;
+                // while (parent && parent.nodeName === 'LI') {
+                //     App.toggleCompleted(parent.dataset.id);
+                //     parent = parent.parentElement.previousElementSibling;
+                // }
+                // while (todo.parentElement.previousElementSibling && todo.parentElement.previousElementSibling.nodeName === 'LI') {
+                //     todo = todo.parentElement.previousElementSibling;
+                //     App.toggleCompleted(todo.dataset.id);
+                // }
+                // todo.dataset.completed = !todo.dataset.completed;
+                if (todo.dataset.completed === 'false') {
+                    // run function to recursively complete false up the tree
+                    let parent = todo.parentElement.previousElementSibling;
+                    while (parent && parent.dataset.completed === 'true') {
+                        App.toggleCompleted(parent.dataset.id);
+                        parent.dataset.completed = 'false';
+                        parent = todo.parentElement.previousElementSibling.parentElement.previousElementSibling;
+                    }
+                }
+            } else if (elClicked.className === 'todo-label') {
+    
+                let isFirst = todo.parentElement.firstElementChild;
+                let parentId = todo.parentElement.id;
                 if (todo === isFirst && parentId) {
                     return;
                 } else if (todo.previousElementSibling) {
@@ -470,36 +670,56 @@ var view = {
                 } else {
                     return;
                 }
-            
-            } else if (e.target.className === 'li') {
-                // console.log(e.target.closest('ul'));
-                // console.log(e.target.parentElement);
-                console.log(e.target.children);
-                // console.log(e.target.id);
+                
             } else if (e.target.className === 'delete') {
-                // var todoId = e.target.closest('li').dataset.id;
                 App.deleteTodo(todoId);
+            } 
+            if (!e.altKey && !e.shiftKey) {
+                view.displayTodos();
+            } 
+        }, false);
+
+        let draggedTodo;
+        let targetTodo;
+        
+
+        window.addEventListener('drag', function(e) {
+            let elDragged = e.target;
+            let todo = elDragged.closest('li');
+            if (elDragged.className === 'li') {
+                draggedTodo = todo.dataset.id;
+            }
+        }, false);
+
+        todosUl.addEventListener("dragover", function(event) {
+            // prevent default to allow drop
+            event.preventDefault();
+            // console.log('default prevented')
+        }, false);
+
+        window.addEventListener('drop', function(e) {
+            dropped = e.screenX;
+            console.log('picked up at: ' + pickedUp, 'dropped at: ' + dropped, 'Distance dragged: ' + pickedUp - dropped);
+            if ( (pickedUp - dropped !== NaN) && (pickedUp - dropped) > 88) {
+                // console.log('accessed the function call to unnest!');
+                App.unnestTotally(draggedTodo);
+            } else if ( (pickedUp - dropped !== NaN) && (pickedUp - dropped <= 88 && pickedUp - dropped >= 1) ) {
+                // console.log('accessed the function call to unnest!');
+                App.unnestTodo(draggedTodo);
+            } else if ( (dropped - pickedUp != NaN) && (dropped - pickedUp > 22) ) {
+                App.nestTodo(draggedTodo);
+            }
+            let dropTarget = e.target.closest('li');
+            e.preventDefault();
+            if (dropTarget) {
+                targetTodo = dropTarget.dataset.id;
+                App.moveTodo(draggedTodo, targetTodo, App.todos);
             }
             view.displayTodos();
-        })
-
-        mainDiv.addEventListener('click', function(e) {
-            var clearAll = document.getElementById('clear-button');
-            var elClicked = e.target;
-            if (e.target === clearAll) {
-
-                util.deleteAll();
-                view.displayTodos();
-            } else if (elClicked === clearCompleted) {
-                debugger;
-                console.log(e.target)
-                App.deleteCompleted();
-            }
-        })
-        
+        }, false);
     },
-
-
 };
 
 App.init();
+
+
